@@ -1,54 +1,52 @@
 # Project Analysis: Hon. Sualihu Dandaawa - MP Impact & Development Tracker
 
 ## Project Overview
-This project is a static web dashboard designed to track and showcase the development initiatives, impact metrics, and community projects of **Hon. Sualihu Dandaawa**, the Member of Parliament for the Karaga Constituency in the Northern Region of Ghana.
+This project is a **Full-Stack Web Application** designed to track and showcase the development initiatives, impact metrics, and community projects of **Hon. Sualihu Dandaawa**, MP for Karaga. It serves as a transparency tool for constituents and a management platform for the MP's team.
 
-It serves as a transparency and reporting tool, allowing constituents to view progress on infrastructure and social support programs.
+## Technical Architecture
 
-## Technical Stack
-*   **Architecture**: Client-side Static Web Application.
-*   **Core Technologies**:
-    *   **HTML5**: Semantic markup for structure (`index.html`).
-    *   **CSS3**: Custom styling with CSS Variables, Flexbox, and Grid (`style.css`). No external CSS frameworks are used, ensuring a lightweight footprint.
-    *   **Vanilla JavaScript**: Handles data storage, DOM manipulation, and dynamic rendering (`main.js`). No frontend frameworks (React, Vue, etc.) are used.
-*   **External Dependencies**:
-    *   **FontAwesome (v6.4.0)**: Used for icons via CDN.
-    *   **Google Fonts**: Uses 'Poppins' (implied by usage in modern designs, though not explicitly checked in heade imports, typically standard for this look).
+### 1. Backend (Node.js & Express)
+*   **Server**: `server.js` acts as the core application server.
+*   **Database**: **SQLite** (`mp_tracker.db`) is used for persistent data storage.
+*   **Authentication**:
+    *   **JWT (JSON Web Tokens)** for session management.
+    *   **Bcrypt** for password hashing.
+    *   **Role-Based Access Control (RBAC)**: Supports roles like `super_admin`, `regional_admin`, `analyst`, `editor`, and `public_viewer`.
+*   **Security**:
+    *   **Rate Limiting**: Protected login/register endpoints.
+    *   **Middleware**: Custom middleware for role verification (`verifySuperAdmin`, `verifyEditor`, etc.).
+    *   **Audit Logging**: Tracks all critical actions (Login, Create, Delete) in the `audit_logs` table.
+*   **File Handling**: **Multer** manages image uploads to `./uploads` and in-memory processing for Excel bulk uploads.
 
-## Key Features
+### 2. Frontend (Vanilla Web Technologies)
+*   **HTML5/CSS3**: Semantic markup and custom `style.css` (Glassmorphism design).
+*   **JavaScript (ES6+)**: `main.js` handles DOM manipulation, data fetching from the API, and dynamic UI updates.
+*   **No Frameworks**: The frontend is built without React/Vue, ensuring a lightweight and fast-loading user experience while communicating with the backend APIs.
 
-### 1. Dynamic Content Rendering
-The application uses a Single Page Application (SPA)-like approach for its content sections.
-*   **Sector Tabs**: Users can switch between different development sectors (Education, Health, Roads, Water, ICT, Social Protection).
-*   **Data-Driven**: All project data is stored in a structured JSON-like object (`dashboardData`) in `main.js`. Clicking a tab updates the DOM to reflect the data for that sector without a page reload.
+## Data Model (SQLite Schema)
 
-### 2. High-Level Metrics
-The dashboard header provides immediate visibility into key performance indicators:
-*   Total Projects
-*   Completed vs. Ongoing counts
-*   Estimated Beneficiaries
+*   **Projects**: Stores development projects.
+    *   Fields: `name`, `sector`, `status`, `location`, `image_url`, `project_cost`, `funding_source`, `contractor`, `beneficiaries`.
+*   **Users**: Manages admin and staff access.
+    *   Roles: `super_admin`, `regional_admin`, `analyst`, `editor`, `public_viewer`.
+*   **Impact Metrics**: Stores high-level counters (e.g., Total Investment, Scholarships).
+*   **Scholarships**: Tracks individual beneficiary data.
+*   **Audit Logs**: Security and activity tracking.
 
-### 3. Community-Level Breakdown
-A specific section creates a table view of progress by community (e.g., Karaga, Sandua, Nyong), tracking:
-*   Completed Projects
-*   Ongoing Projects
-*   Last Update timestamps (represented as badges).
+## API Structure
 
-### 4. Interactive Elements
-*   **Impact Summary Widget**: Dynamically updates specific statistics based on the selected sector.
-*   **Completion Rate Visualizer**: A progress bar and percentage display that adjusts for each sector.
+### Public Endpoints
+*   `GET /api/projects`: Fetch filtered project lists (supports pagination, search, sector filters).
+*   `GET /api/metrics`: Retrieve dashboard statistics.
 
-## Data Structure (`main.js`)
-The data is organized by sector keys (e.g., `education`, `health`). Each sector object contains:
-*   `infraTitle` & `supportTitle`: Headers for the two main columns.
-*   `infraProjects` & `supportProjects`: Arrays of project objects containing:
-    *   `name`: Project title.
-    *   `locations`: Target communities.
-    *   `year`: Implementation year.
-    *   `status`: 'completed', 'ongoing', or 'planned' (used for CSS styling).
-*   `impactMetrics`: Array of stat objects (`val`, `label`).
-*   `rate`: Integer representing the overall completion percentage.
+### Protected Endpoints (Auth Required)
+*   `POST /api/projects`: Create new project.
+*   `PUT /api/projects/:id`: Update existing project.
+*   `DELETE /api/projects/:id`: Archive project.
+*   `POST /api/projects/bulk-upload`: Excel bulk import.
+*   `GET /api/users`: Manage system users (Super Admin only).
 
-## Design System
-*   **Theme**: Glassmorphism effects (`.glass-panel`), gradients, and extraction of specific colors (Gold/Accent colors) for branding.
-*   **Responsiveness**: Grid and Flexbox layouts are used to adapt to different screen sizes (though specific media queries were not deeply analyzed, the structure supports it).
+## Deployment & Production
+*   **Process Manager**: `ecosystem.config.js` is configured for **PM2** process management.
+*   **Backups**: Automated daily cron job backups the SQLite database to `./backups`.
+*   **Environment**: Uses `.env` for sensitive keys (`JWT_SECRET`, `PORT`).
