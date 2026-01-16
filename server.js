@@ -757,6 +757,11 @@ app.delete('/api/users/:id', authMiddleware, verifySuperAdmin, (req, res) => {
     });
 });
 
+// --- API 404 HANDLER ---
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: "API endpoint not found. Check route URL." });
+});
+
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err.stack);
