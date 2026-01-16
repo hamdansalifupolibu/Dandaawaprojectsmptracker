@@ -4,8 +4,7 @@ module.exports = {
         script: "./server.js",
         cwd: "./",
         env: {
-            NODE_ENV: "production",
-            PORT: 3000
+            NODE_ENV: "production"
         },
         watch: false,
         max_memory_restart: '500M',
