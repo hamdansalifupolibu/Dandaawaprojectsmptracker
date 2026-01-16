@@ -2,16 +2,35 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const dbPath = path.resolve(__dirname, 'mp_tracker.db');
 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database at ' + dbPath, err.message);
-    } else {
-        console.log('Connected to the SQLite database at ' + dbPath);
-        initDb();
-    }
-});
+let db = null;
+let dbError = null;
+
+try {
+    db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error('CRITICAL DATABASE ERROR:', err.message);
+            dbError = err.message;
+        } else {
+            console.log('Connected to the SQLite database at ' + dbPath);
+            initDb();
+        }
+    });
+} catch (e) {
+    dbError = e.message;
+    console.error('DB INIT EXCEPTION:', e.message);
+}
+
+// Export a wrapper to handle 'db' being null safely
+const safeDb = {
+    run: (...args) => db ? db.run(...args) : console.error('DB Operation Skipped: DB is Null'),
+    get: (...args) => db ? db.get(...args) : (args[args.length - 1](dbError || 'DB Disconnected')),
+    all: (...args) => db ? db.all(...args) : (args[args.length - 1](dbError || 'DB Disconnected', [])),
+    serialize: (fn) => db ? db.serialize(fn) : null,
+    close: (fn) => db ? db.close(fn) : fn(null)
+};
 
 function initDb() {
+    if (!db) return;
     db.serialize(() => {
         // Users Table
         db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -105,4 +124,4 @@ function initDb() {
     });
 }
 
-module.exports = db;
+module.exports = safeDb;

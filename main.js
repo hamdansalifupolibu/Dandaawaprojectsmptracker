@@ -1,3 +1,4 @@
+console.log("APP VERSION: 2.1 (Fix Loaded)");
 // dashboardData and communities are now served via API
 
 // Global State
@@ -288,7 +289,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const projectsRes = await fetch(`/api/projects${queryParams}`);
-            const projectsData = await projectsRes.json();
+
+            // Safe JSON Parsing to catch HTML errors (like 404/500 pages)
+            let projectsData;
+            const contentType = projectsRes.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                projectsData = await projectsRes.json();
+            } else {
+                const text = await projectsRes.text();
+                console.error("API returned non-JSON:", text.substring(0, 500)); // Log first 500 chars
+                throw new Error(`Server Error: Received ${projectsRes.status}. Check console for details.`);
+            }
 
             if (!projectsRes.ok) throw new Error(projectsData.error || 'Failed to fetch projects');
 
@@ -563,7 +574,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('p-id').value;
             const method = id ? 'PUT' : 'POST';
-            const url = id ? `/api/projects/${id}` : '/api/projects';
+            console.log("APP VERSION: 2.0 (Blue Theme - Fix Loaded)");
+            const API_BASE = '/api';
+            const url = id ? `${API_BASE}/projects/${id}` : `${API_BASE}/projects`;
 
             const formData = new FormData();
             // Basic Fields

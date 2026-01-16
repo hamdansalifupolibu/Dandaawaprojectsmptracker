@@ -128,6 +128,56 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// --- SEEDING ENDPOINT (Repair Kit) ---
+app.get('/api/seed', (req, res) => {
+    try {
+        const seedPath = path.resolve(__dirname, 'projects_dump.json');
+        if (!fs.existsSync(seedPath)) return res.status(404).json({ error: 'Seed file not found' });
+
+        const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+        let inserted = 0;
+        let errors = 0;
+
+        db.serialize(() => {
+            // FORCE TABLE CREATION (Repair Schema)
+            db.run(`CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                locations TEXT, 
+                sector TEXT,
+                year TEXT,
+                status TEXT,
+                category TEXT,
+                community TEXT,
+                image_url TEXT,
+                project_cost TEXT,
+                funding_source TEXT,
+                beneficiary_count INTEGER,
+                contractor TEXT,
+                description TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Insert Data
+            const stmt = db.prepare(`INSERT OR IGNORE INTO projects (id, name, locations, sector, year, status, category, community, created_at, image_url, project_cost, funding_source, beneficiary_count, contractor, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+
+            seedData.forEach(p => {
+                stmt.run(p.id, p.name, p.locations, p.sector, p.year, p.status, p.category, p.community, p.created_at, p.image_url, p.project_cost, p.funding_source, p.beneficiary_count, p.contractor, p.description, (err) => {
+                    if (err) errors++;
+                    else inserted++;
+                });
+            });
+
+            stmt.finalize(() => {
+                res.json({ message: `Seeding complete. Inserted: ${inserted}, Errors/Duplicates: ${errors}` });
+            });
+        });
+
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Projects (Cached)
 app.get('/api/projects', (req, res) => {
     const cacheKey = JSON.stringify(req.query);
@@ -709,10 +759,16 @@ app.delete('/api/users/:id', authMiddleware, verifySuperAdmin, (req, res) => {
 
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Unhandled Error:', err.stack);
     fs.appendFileSync('server_error.log', `${new Date().toISOString()} - GLOBAL ERROR: ${err.stack}\n`);
     logAudit(req, 'SERVER_ERROR', { error: err.message });
-    res.status(500).json({ error: 'Internal Server Error' });
+
+    // Ensure JSON response for API clients
+    res.status(500).json({
+        status: 'error',
+        message: 'Internal Server Error',
+        error: err.message // Expose error message for debugging momentarily
+    });
 });
 
 // --- SHUTDOWN ---
@@ -728,6 +784,25 @@ const gracefulShutdown = () => {
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// --- SERVER STARTUP ---
+const HOST = '0.0.0.0'; // Critical for cloud hosting
+const server = app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
+    console.log(`Node Version: ${process.version}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+});
+
+// Capture startup errors
+server.on('error', (e) => {
+    console.error('SERVER LISTEN ERROR:', e.message);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('CRITICAL UNCAUGHT EXCEPTION:', error);
+    // Keep alive if possible, or log to file
+    fs.appendFileSync('crash.log', `${new Date().toISOString()} CRITICAL: ${error.stack}\n`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION:', reason);
 });
