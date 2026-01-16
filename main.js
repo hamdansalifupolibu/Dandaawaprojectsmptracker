@@ -56,7 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.fetchDashboardStats = async () => {
         try {
             const res = await fetch('/api/metrics');
-            const data = await res.json();
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                console.error("Dashboard Stats API Error (Non-JSON):", text.substring(0, 500));
+                return; // Stop processing
+            }
 
             // Counts
             if (data.counts) {
@@ -432,7 +440,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderTable() {
         try {
             const res = await fetch('/api/communities');
-            const communities = await res.json();
+            let communities;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                communities = await res.json();
+            } else {
+                const text = await res.text();
+                console.error("Communities API Error (Non-JSON):", text.substring(0, 500));
+                return;
+            }
             const communityTbody = document.querySelector('#community-tbody');
             if (communityTbody) {
                 communityTbody.innerHTML = communities.map((c, index) => `
@@ -452,9 +468,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchScholarships() {
         try {
             const res = await fetch('/api/kpi/scholarships');
-            const data = await res.json();
-            const el = document.getElementById('stat-scholarships');
-            if (el) el.textContent = data.value;
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+                const el = document.getElementById('stat-scholarships');
+                if (el) el.textContent = data.value;
+            } else {
+                console.error("Scholarships API Error (Non-JSON):", await res.text());
+            }
         } catch (e) {
             console.error(e);
         }
