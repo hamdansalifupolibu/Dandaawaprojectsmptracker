@@ -318,8 +318,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(`/api/impact-metrics?sector=${sectorKey}`),
                 fetch(`/api/completion-rates?sector=${sectorKey}`)
             ]);
-            const metricsData = await metricsRes.json();
-            const ratesData = await ratesRes.json();
+
+            let metricsData = { metrics: [] };
+            if (metricsRes.headers.get("content-type")?.includes("application/json")) {
+                metricsData = await metricsRes.json();
+            } else {
+                console.error("Impact Metrics API Error:", await metricsRes.text());
+            }
+
+            let ratesData = { rates: [] };
+            if (ratesRes.headers.get("content-type")?.includes("application/json")) {
+                ratesData = await ratesRes.json();
+            } else {
+                console.error("Completion Rates API Error:", await ratesRes.text());
+            }
 
             const infraProjects = projectsData.projects.filter(p => p.category === 'infra');
             const supportProjects = projectsData.projects.filter(p => p.category === 'support');
