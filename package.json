@@ -2,9 +2,9 @@
   "name": "hon.-salifu-dandaawa",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node app.js",
     "build": "echo 'No build step necessary'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
