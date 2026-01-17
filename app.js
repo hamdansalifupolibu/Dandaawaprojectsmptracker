@@ -31,7 +31,7 @@ const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_key_change_me';
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- FILE UPLOAD CONFIG ---
